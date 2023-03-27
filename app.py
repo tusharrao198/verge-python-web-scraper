@@ -1,5 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
+import sqlite3
+import csv
+from datetime import date
+
 class VergeScraper:
     def __init__(self):
         self.base_url = "https://www.theverge.com"
@@ -37,10 +41,38 @@ class VergeScraper:
             print(article)
             self.article_data.append(article)
 
+    def save_to_csv(self):
+        filename = date.today().strftime("%d%m%Y") + "_verge.csv"
+        with open(filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "url", "headline", "author", "date"])
+            for article in self.article_data:
+                writer.writerow(article)
+
+    def save_to_sqlite(self):
+        conn = sqlite3.connect("verge_articles.db")
+        c = conn.cursor()
+        c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS articles (
+                id INTEGER PRIMARY KEY,
+                url TEXT,
+                headline TEXT,
+                author TEXT,
+                date TEXT
+            )
+            """
+        )
+        for article in self.article_data:
+            c.execute("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?, ?)", article)
+        conn.commit()
+        conn.close()
 
 if __name__ == "__main__":
     scraper = VergeScraper()
     scraper.get_article_urls()
     scraper.scrape_articles()
+    scraper.save_to_csv()
+    scraper.save_to_sqlite()
 
 
