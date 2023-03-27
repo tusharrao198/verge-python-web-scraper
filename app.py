@@ -1,40 +1,46 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+class VergeScraper:
+    def __init__(self):
+        self.base_url = "https://www.theverge.com"
+        self.article_urls = []
+        self.article_data = []
 
-# function to get the page content
-def get_page_content(url):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
-    }
-    response = requests.get(url, headers=headers)
-    content = response.content
-    return content
+    def get_article_urls(self):
+        r = requests.get(self.base_url)
+        soup = BeautifulSoup(r.text, "html.parser")
+        divdata = soup.find('div', "h-full w-full lg:max-h-full lg:w-[380px] lg:pt-[174px]")
+        articles = divdata.find("ol")
+        for article in articles:
+            url = article.find("a")["href"]
+            self.article_urls.append(f"https://www.theverge.com{url}")
 
-
-# function to scrape theverge.com
-def scrape(self):
-    url = 'https://www.theverge.com/'
-    content = get_page_content(url)
-    soup = BeautifulSoup(content, 'html.parser')
-    articles = soup.find_all('article')
-    for article in articles:
-        try:
-            url = article.find('a', class_='c-entry-box--compact__image-wrapper')['href']
-            headline = article.find('h2', class_='c-entry-box--compact__title').text
-            author = article.find('span', class_='c-byline__item').text
-            date = article.find('time')['datetime']
-            date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y/%m/%d')
-            self.articles.append({
-                'url': url,
-                'headline': headline,
-                'author': author,
-                'date': date
-            })
-        except:
+    def scrape_articles(self):
+        for url in self.article_urls:
+            r = requests.get(url)
+            soup = BeautifulSoup(r.text, "html.parser")
+            article_heading = soup.find('h1')
             
-            pass
+            # extract article title
+            headline = article_heading.text.strip()
+
+            #extract authors
+            authors_list = soup.find('div').find('p')
+            authors = ""
+            for author in authors_list:
+                authors = authors.strip() + " " + author.text.strip()
+
+            # extract date
+            date_str = soup.find('time').text.strip()            
+            article_id = hash(url)
+            article = (int(article_id), url, headline, authors, date_str)
+            print(article)
+            self.article_data.append(article)
 
 
-# testing
-# print(get_page_content("https://www.theverge.com/"))  
+if __name__ == "__main__":
+    scraper = VergeScraper()
+    scraper.get_article_urls()
+    scraper.scrape_articles()
+
+
